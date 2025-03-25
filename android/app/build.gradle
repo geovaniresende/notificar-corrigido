@@ -1,7 +1,7 @@
 plugins {
     id "com.android.application"
     // START: FlutterFire Configuration
-    id 'com.google.gms.google-services'
+    id 'com.google.gms.google-services' // Plugin do Google Services
     // END: FlutterFire Configuration
     id "kotlin-android"
     // O Flutter Gradle Plugin deve ser aplicado após os plugins do Android e Kotlin.
@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.notificar"
+    namespace = "com.example.notificar"  // Defina o namespace do seu aplicativo
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -24,7 +24,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.notificar"
+        applicationId = "com.example.notificar"  // Substitua com o ID do seu app
         minSdk = 23
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -43,8 +43,8 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.firebase:firebase-messaging:23.2.1'
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'
+    implementation 'com.google.firebase:firebase-messaging:23.2.1'  // Firebase Cloud Messaging
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.3'  // Para compatibilidade com APIs Java 8
 }
 
 flutter {

@@ -18,7 +18,7 @@ class TermsAndPrivacyScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 0, 0, 0),
+        backgroundColor: Color(0xFF303131),
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           color: Color(0xFFD4A017),
@@ -246,7 +246,7 @@ class TermsAndPrivacyScreen extends StatelessWidget {
                 style: TextStyle(color: Color(0xFFD4A017)), // Texto amarelo
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black, // Cor de fundo preta
+                backgroundColor: Color(0xFF303131), // Cor de fundo preta
               ),
             ),
           ],

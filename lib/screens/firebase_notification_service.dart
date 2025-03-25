@@ -1,24 +1,41 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class FirebaseNotificationService {
-  final FirebaseMessaging _messaging = FirebaseMessaging.instance;
-
-  Future<void> requestPermission() async {
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-  }
+  final String _serverKey = "SEU_SERVER_KEY_DO_FCM"; // Substitua pela sua chave
 
   Future<void> sendPushNotification(
-      String token, String title, String body) async {
-    await _messaging.sendMessage(
-      to: token,
-      data: {
-        'title': title,
-        'body': body,
-      },
-    );
+      String token, String title, String message) async {
+    try {
+      var response = await http.post(
+        Uri.parse('https://fcm.googleapis.com/fcm/send'),
+        headers: <String, String>{
+          'Content-Type': 'application/json',
+          'Authorization': 'key=$_serverKey',
+        },
+        body: jsonEncode(
+          <String, dynamic>{
+            'to': token,
+            'notification': {
+              'title': title,
+              'body': message,
+              'sound': 'default',
+            },
+            'data': {
+              'click_action': 'FLUTTER_NOTIFICATION_CLICK',
+              'status': 'done',
+            },
+          },
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        print("✅ Notificação enviada com sucesso!");
+      } else {
+        print("❌ Falha ao enviar notificação: ${response.body}");
+      }
+    } catch (e) {
+      print("⚠️ Erro ao enviar notificação: $e");
+    }
   }
 }

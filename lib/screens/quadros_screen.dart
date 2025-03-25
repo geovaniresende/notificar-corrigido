@@ -10,38 +10,38 @@ class QuadrosScreen extends StatefulWidget {
 class _QuadrosScreenState extends State<QuadrosScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  String? userUID;
   String? userPlate;
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _getUserPlate();
+    _getUserData();
   }
 
-  Future<void> _getUserPlate() async {
+  Future<void> _getUserData() async {
     User? user = _auth.currentUser;
     if (user != null) {
+      userUID = user.uid;
+      print("Usuário autenticado: $userUID");
+
       DocumentSnapshot userDoc =
-          await _firestore.collection('users').doc(user.uid).get();
+          await _firestore.collection('users').doc(userUID).get();
 
       if (userDoc.exists && userDoc.data() != null) {
         setState(() {
-          userPlate = userDoc['plate']; // Pegando a placa do usuário logado
+          userPlate = (userDoc.data() as Map<String, dynamic>)['plate'];
+          print("Placa carregada: $userPlate");
           isLoading = false;
         });
-        print('Placa do usuário: $userPlate'); // Debugging
       } else {
-        setState(() {
-          userPlate = null; // Se não encontrar o usuário, definir como nulo
-          isLoading = false;
-        });
+        print("Nenhum documento encontrado para o usuário.");
+        setState(() => isLoading = false);
       }
     } else {
-      setState(() {
-        userPlate = null; // Se o usuário não estiver logado, definir como nulo
-        isLoading = false;
-      });
+      print("Nenhum usuário autenticado.");
+      setState(() => isLoading = false);
     }
   }
 
@@ -52,146 +52,146 @@ class _QuadrosScreenState extends State<QuadrosScreen> {
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
-          title:
-              const Text('Solicitações', style: TextStyle(color: Colors.amber)),
-          backgroundColor: Colors.black,
+          title: const Text('Solicitações',
+              style: TextStyle(color: Color(0xFFD4A017))),
+          backgroundColor: Color(0xFF303131),
           leading: IconButton(
-            icon: Icon(Icons.arrow_back, color: Colors.amber),
-            onPressed: () => Navigator.of(context).pop(),
+            icon: Icon(Icons.arrow_back, color: Color(0xFFD4A017)),
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
           bottom: TabBar(
-            indicatorColor: Colors.amber,
+            indicatorColor: Color(0xFFD4A017),
             tabs: [
               Tab(
-                  child: Center(
-                      child: Text('Realizadas',
-                          style: TextStyle(color: Colors.amber)))),
+                  child: Text('Realizadas',
+                      style: TextStyle(color: Color(0xFFD4A017)))),
               Tab(
-                  child: Center(
-                      child: Text('Recebidas',
-                          style: TextStyle(color: Colors.amber)))),
+                  child: Text('Recebidas',
+                      style: TextStyle(color: Color(0xFFD4A017)))),
             ],
           ),
         ),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
-            : userPlate == null
-                ? const Center(child: Text("Erro ao carregar a placa."))
-                : TabBarView(
-                    children: [
-                      _buildRequestList(),
-                      _buildReceivedNotifications(),
-                    ],
-                  ),
+            : TabBarView(
+                children: [
+                  _buildSentRequests(),
+                  _buildReceivedRequests(),
+                ],
+              ),
       ),
     );
   }
 
-  /// Aba "Realizadas" - solicitações feitas pelo usuário logado
-  Widget _buildRequestList() {
+  Widget _buildSentRequests() {
+    if (userUID == null) {
+      return const Center(child: Text("Erro ao carregar notificações."));
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
-          .collection('completedRequests')
-          .where('userPlate',
-              isEqualTo: userPlate) // Filtrando pela placa do usuário
+          .collection('sentRequests')
+          .doc(userUID)
+          .collection('notifications')
+          .orderBy('timestamp',
+              descending: true) // Ordena por data e hora (descendente)
           .snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return const Center(child: Text("Erro ao carregar solicitações."));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text("Nenhuma solicitação encontrada."));
-        }
-
-        return _buildList(snapshot.data!.docs);
+        return _buildList(snapshot, "Realizadas");
       },
     );
   }
 
-  /// Aba "Recebidas" - solicitações feitas para a placa do usuário logado
-  Widget _buildReceivedNotifications() {
+  Widget _buildReceivedRequests() {
+    if (userPlate == null) {
+      return const Center(child: Text("Erro ao carregar notificações."));
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('receivedRequests')
-          .doc(userPlate!) // Buscando na coleção da placa do usuário
+          .doc(userPlate)
           .collection('notifications')
+          .orderBy('timestamp',
+              descending: true) // Ordena por data e hora (descendente)
           .snapshots(),
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return const Center(child: Text("Erro ao carregar notificações."));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text("Nenhuma notificação recebida."));
-        }
-
-        return _buildList(snapshot.data!.docs);
+        return _buildList(snapshot, "Recebidas");
       },
     );
   }
 
-  /// Método genérico para renderizar as listas de solicitações
-  Widget _buildList(List<DocumentSnapshot> docs) {
-    return ListView.builder(
-      itemCount: docs.length,
-      itemBuilder: (context, index) {
-        final data = docs[index].data() as Map<String, dynamic>? ?? {};
+  Widget _buildList(AsyncSnapshot<QuerySnapshot> snapshot, String tipo) {
+    if (snapshot.connectionState == ConnectionState.waiting) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (snapshot.hasError) {
+      return const Center(child: Text("Erro ao carregar dados."));
+    }
+    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+      return Center(child: Text("Nenhuma notificação."));
+    }
 
-        final reason = data['reason'] ?? 'Sem motivo especificado';
-        final plate = data['plate'] ?? 'Placa desconhecida';
+    return ListView(
+      padding: EdgeInsets.all(10),
+      children: snapshot.data!.docs.map((doc) {
+        final data = doc.data() as Map<String, dynamic>;
+        final Timestamp? timestamp = data['timestamp'];
+        final DateTime? dateTime = timestamp?.toDate();
 
-        return Card(
-          color: Colors.black,
-          margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4.0),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Image.asset('assets/images/razao.png'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(reason,
-                          style: const TextStyle(color: Colors.amber)),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4.0),
-                      child: SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: Image.asset('assets/images/placa.png'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(plate,
-                          style: const TextStyle(color: Colors.amber)),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        return Container(
+          margin: EdgeInsets.only(bottom: 10),
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Color(0xFF303131),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildInfoRow('assets/images/placa.png', data['plate']),
+              SizedBox(height: 5),
+              _buildInfoRow('assets/images/razao.png', data['reason']),
+              SizedBox(height: 10),
+              _buildTimestampRow(dateTime),
+            ],
           ),
         );
-      },
+      }).toList(),
+    );
+  }
+
+  Widget _buildInfoRow(String imagePath, String? text) {
+    return Row(
+      children: [
+        Image.asset(imagePath, width: 20, height: 20),
+        SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text ?? "Desconhecido",
+            style: TextStyle(color: Color(0xFFD4A017), fontSize: 16),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimestampRow(DateTime? dateTime) {
+    String formattedDate = dateTime != null
+        ? "${dateTime.day}/${dateTime.month}/${dateTime.year} ${dateTime.hour}:${dateTime.minute}"
+        : "Data não disponível";
+
+    return Row(
+      children: [
+        Image.asset('assets/images/relogio.png', width: 20, height: 20),
+        SizedBox(width: 10),
+        Text(
+          formattedDate,
+          style: TextStyle(color: Color(0xFFD4A017), fontSize: 16),
+        ),
+      ],
     );
   }
 }

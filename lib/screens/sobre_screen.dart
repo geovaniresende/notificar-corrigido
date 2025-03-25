@@ -17,17 +17,17 @@ class _SobreScreenState extends State<SobreScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black, // Barra preta no topo
+        backgroundColor: Color(0xFF303131), // Cor de fundo da AppBar
         leading: IconButton(
           icon: const Icon(Icons.arrow_back,
-              color: Color(0xFFD4A017)), // Seta amarelo mostarda
+              color: Color(0xFFD4A017)), // Seta amarela
           onPressed: () {
             Navigator.pop(context); // Voltar para a tela anterior
           },
         ),
         title: const Text(
           'Sobre esse app',
-          style: TextStyle(color: Color(0xFFD4A017)), // Texto amarelo mostarda
+          style: TextStyle(color: Color(0xFFD4A017)), // Texto amarelo
         ),
         centerTitle: true,
       ),
@@ -56,7 +56,7 @@ class _SobreScreenState extends State<SobreScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Linha separadora preta
+            // Linha separadora com a cor preta
             const Divider(
               color: Colors.black,
               thickness: 1,
@@ -119,14 +119,16 @@ class _SobreScreenState extends State<SobreScreen> {
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
+                  backgroundColor: Color(0xFF303131), // Cor de fundo preta
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
                   ),
                 ),
                 child: const Text(
                   'Copiar',
-                  style: TextStyle(color: Colors.white),
+                  style: TextStyle(
+                    color: Color(0xFFD4A017), // Texto amarelo
+                  ),
                 ),
               ),
             ],
@@ -147,7 +149,7 @@ class _SobreScreenState extends State<SobreScreen> {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.black, // Botão preto
+        backgroundColor: Color(0xFF303131), // Cor de fundo preta
         minimumSize:
             const Size(double.infinity, 50), // Largura total e altura fixa
         shape: RoundedRectangleBorder(
@@ -157,7 +159,7 @@ class _SobreScreenState extends State<SobreScreen> {
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.white, // Texto branco
+          color: Color(0xFFD4A017), // Texto branco
           fontWeight: FontWeight.bold,
         ),
       ),

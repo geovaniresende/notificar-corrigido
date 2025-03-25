@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'mycars_screen.dart'; // Importando a tela MyCarsScreen
-import 'vehicle_registration_screen.dart'; // Importando a tela VehicleRegistrationScreen
+import 'mycars_screen.dart';
+import 'vehicle_registration_screen.dart';
+import 'login_screen.dart';
 
 class NotificationScreen extends StatelessWidget {
   const NotificationScreen({Key? key}) : super(key: key);
@@ -9,26 +10,31 @@ class NotificationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.menu,
-            color: Color(0xFFD4A017),
-          ),
-          onPressed: () {
-            _showMenu(context); // Abrir menu ao clicar no ícone de menu
-          },
-        ),
-        title: const Text(
-          'Notificar',
-          style: TextStyle(
-            color: Color(0xFFD4A017),
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
+        backgroundColor: const Color(0xFF303131),
         automaticallyImplyLeading: false,
+        title: Stack(
+          alignment: Alignment.center,
+          children: [
+            Center(
+              child: Image.asset(
+                'assets/images/notification_icon.png',
+                width: 100, // Mantendo um tamanho grande, mas sem exagero
+                height: 100,
+                fit: BoxFit.contain,
+              ),
+            ),
+            Positioned(
+              left: 0, // Mantendo o botão no canto esquerdo
+              child: IconButton(
+                icon:
+                    const Icon(Icons.menu, color: Color(0xFFECC14A), size: 30),
+                onPressed: () {
+                  _showMenu(context);
+                },
+              ),
+            ),
+          ],
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -51,18 +57,16 @@ class NotificationScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) =>
-                        const VehicleRegistrationScreen(), // Navegar para a tela VehicleRegistrationScreen
+                    builder: (context) => const VehicleRegistrationScreen(),
                   ),
                 );
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
+                backgroundColor: const Color(0xFF303131),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(
-                    vertical: 40), // Tamanho maior do botão
+                padding: const EdgeInsets.symmetric(vertical: 40),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -74,7 +78,7 @@ class NotificationScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   const Text(
-                    'Faça sua solicitação', // Texto alterado
+                    'Faça sua solicitação',
                     style: TextStyle(
                       color: Color(0xFFD4A017),
                       fontSize: 18,
@@ -92,7 +96,7 @@ class NotificationScreen extends StatelessWidget {
   void _showMenu(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF303131),
       builder: (BuildContext context) {
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -105,7 +109,7 @@ class NotificationScreen extends StatelessWidget {
               ),
               title: const Text(
                 'Solicitações',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Color(0xFFD4A017)),
               ),
               onTap: () {
                 Navigator.pushNamed(context, '/quadros_screen');
@@ -119,14 +123,12 @@ class NotificationScreen extends StatelessWidget {
               ),
               title: const Text(
                 'Meus Carros',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Color(0xFFD4A017)),
               ),
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (context) =>
-                          const MyCarsScreen()), // Navegar para MyCarsScreen
+                  MaterialPageRoute(builder: (context) => const MyCarsScreen()),
                 );
               },
             ),
@@ -138,7 +140,7 @@ class NotificationScreen extends StatelessWidget {
               ),
               title: const Text(
                 'Editar Perfil',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Color(0xFFD4A017)),
               ),
               onTap: () {
                 Navigator.pushNamed(context, '/edit_profile');
@@ -152,10 +154,26 @@ class NotificationScreen extends StatelessWidget {
               ),
               title: const Text(
                 'Sobre esse app',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: Color(0xFFD4A017)),
               ),
               onTap: () {
                 Navigator.pushNamed(context, '/sobre_screen');
+              },
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.exit_to_app,
+                color: Color(0xFFD4A017),
+              ),
+              title: const Text(
+                'Sair',
+                style: TextStyle(color: Color(0xFFD4A017)),
+              ),
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
               },
             ),
           ],

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'notification_screen.dart'; // Importe a tela de notificação
+import 'notification_screen.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({Key? key}) : super(key: key);
@@ -27,9 +27,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _saveProfile() {
-    // Aqui você pode chamar um serviço para atualizar os dados do usuário no backend
-
-    // Após a atualização bem-sucedida, redirecionar para a tela NotificationScreen
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const NotificationScreen()),
@@ -40,10 +37,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF303131),
         title: const Text(
           'Editar Perfil',
-          style: TextStyle(color: Color(0xFFD4A017)), // Texto amarelo mostarda
+          style: TextStyle(color: Color(0xFFD4A017)),
         ),
         centerTitle: true,
         leading: IconButton(
@@ -59,30 +56,29 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildTextField(_nameController, 'Nome', 'Digite seu nome'),
-              _buildTextField(_emailController, 'Email', 'Digite seu email'),
-              _buildTextField(
-                  _phoneController, 'Celular', 'Digite seu celular'),
-              _buildTextField(
-                  _passwordController, 'Senha', 'Digite sua nova senha',
-                  obscureText: true),
-              _buildTextField(_confirmPasswordController, 'Confirme a Senha',
-                  'Confirme sua nova senha',
+              _buildTextField(_nameController, 'NOME'),
+              _buildTextField(_emailController, 'EMAIL'),
+              _buildTextField(_phoneController, 'CELULAR'),
+              _buildTextField(_passwordController, 'SENHA', obscureText: true),
+              _buildTextField(_confirmPasswordController, 'NOVA SENHA',
                   obscureText: true),
               const SizedBox(height: 30),
               Center(
-                child: ElevatedButton(
-                  onPressed: _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 15),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: const Text(
-                    'Salvar',
-                    style: TextStyle(color: Color(0xFFD4A017), fontSize: 18),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _saveProfile,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF303131),
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                    child: const Text(
+                      'SALVAR',
+                      style: TextStyle(color: Color(0xFFD4A017), fontSize: 18),
+                    ),
                   ),
                 ),
               ),
@@ -93,18 +89,40 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildTextField(
-      TextEditingController controller, String label, String hint,
+  Widget _buildTextField(TextEditingController controller, String hint,
       {bool obscureText = false}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
         controller: controller,
         obscureText: obscureText,
+        textAlign: TextAlign.center, // Centraliza o texto
         decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
           hintText: hint,
+          hintStyle: const TextStyle(
+            color: Color(0xFF303131), // Define a cor do hint text
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20.0),
+            borderSide: const BorderSide(color: Color(0xFF303131), width: 3.0),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20.0),
+            borderSide: const BorderSide(color: Color(0xFF303131), width: 3.0),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(20.0),
+            borderSide: const BorderSide(color: Color(0xFF303131), width: 4.0),
+          ),
+          filled: true,
+          fillColor: Colors.transparent,
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 10.0, horizontal: 15.0),
+        ),
+        style: const TextStyle(
+          color: Color(0xFF303131), // Define a cor da fonte digitada
+          fontSize: 16,
+          fontWeight: FontWeight.bold, // Texto em negrito
         ),
       ),
     );

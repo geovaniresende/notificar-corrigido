@@ -45,5 +45,27 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Permissões para notificações -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
+
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>Precisamos de permissão para enviar notificações importantes.</string>
+
+	<key>NSPushNotificationsUsageDescription</key>
+	<string>O aplicativo usa notificações para manter você informado sobre novidades e alertas.</string>
 </dict>
 </plist>

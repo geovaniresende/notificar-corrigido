@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'; // Import necessário para FCM
+import 'package:flutter/services.dart'; // Importação necessária para TextInputFormatter
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({Key? key}) : super(key: key);
@@ -38,6 +40,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         String userId = userCredential.user!.uid;
 
+        // Salva os dados do usuário no Firestore
         await _firestore.collection('users').doc(userId).set({
           'name': name,
           'email': email,
@@ -46,21 +49,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'createdAt': Timestamp.now(),
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Cadastro realizado com sucesso!')),
-        );
+        // Obtém o token FCM e salva no Firestore
+        await _saveFCMToken(userId);
 
-        Navigator.pushNamed(context, '/');
+        // Navega para a tela de login
+        Navigator.pushReplacementNamed(context, '/login');
       } on FirebaseAuthException catch (e) {
-        if (e.code == 'weak-password') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('A senha fornecida é fraca.')),
-          );
-        } else if (e.code == 'email-already-in-use') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Este e-mail já está em uso.')),
-          );
-        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao conectar com o servidor.')),
+        );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Erro ao conectar com o servidor.')),
@@ -69,135 +66,117 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  // Método para salvar o FCM token no Firestore
+  Future<void> _saveFCMToken(String userId) async {
+    String? token = await FirebaseMessaging.instance.getToken();
+
+    if (token != null) {
+      await _firestore.collection('users').doc(userId).update({
+        'fcm_token': token,
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
+        backgroundColor: const Color(0xFF303131),
         title: const Text(
           'Cadastro',
-          style: TextStyle(color: Color(0xFFD4A017)),
+          style: TextStyle(color: Color(0xFFECC14A)),
         ),
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          color: const Color(0xFFECC14A),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Text(
-                  'Bem-vindo ao Notifi-car,\npreencha os campos abaixo para criar a sua conta',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                _buildRoundedTextField(
-                  label: 'Nome Completo',
-                  hint: 'Digite seu nome completo',
-                  controller: _nameController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Nome é obrigatório';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildRoundedTextField(
-                  label: 'E-mail',
-                  hint: 'Digite seu e-mail',
-                  controller: _emailController,
-                  inputType: TextInputType.emailAddress,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'E-mail é obrigatório';
-                    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
-                        .hasMatch(value)) {
-                      return 'Digite um e-mail válido';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildRoundedTextField(
-                  label: 'Celular',
-                  hint: 'Digite seu número de celular',
-                  controller: _phoneController,
-                  inputType: TextInputType.phone,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Número de celular é obrigatório';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildRoundedTextField(
-                  label: 'Placa',
-                  hint: 'Digite a placa do seu veículo',
-                  controller: _plateController,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Placa do veículo é obrigatória';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildRoundedTextField(
-                  label: 'Senha',
-                  hint: 'Digite sua senha',
-                  controller: _passwordController,
-                  obscureText: true,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Senha é obrigatória';
-                    } else if (value.length < 6) {
-                      return 'Senha deve ter no mínimo 6 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildRoundedTextField(
-                  label: 'Confirmar Senha',
-                  hint: 'Confirme sua senha',
-                  controller: _confirmPasswordController,
-                  obscureText: true,
-                  validator: (value) {
-                    if (value != _passwordController.text) {
-                      return 'As senhas não coincidem';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30.0),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 60.0, vertical: 15.0),
-                  ),
-                  child: const Text(
-                    'Cadastrar',
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: SingleChildScrollView(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Bem-vindo ao Notifi-car,\npreencha os campos abaixo para criar a sua conta',
                     style: TextStyle(
-                      color: Color(0xFFD4A017),
                       fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF303131),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildRoundedTextField(
+                    hint: 'NOME',
+                    controller: _nameController,
+                    textInputType: TextInputType.text,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRoundedTextField(
+                    hint: 'EMAIL',
+                    controller: _emailController,
+                    textInputType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRoundedTextField(
+                    hint: 'CELULAR',
+                    controller: _phoneController,
+                    textInputType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRoundedTextField(
+                    hint: 'PLACA',
+                    controller: _plateController,
+                    inputFormatters: [UpperCaseTextInputFormatter()],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRoundedTextField(
+                    hint: 'SENHA',
+                    controller: _passwordController,
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRoundedTextField(
+                    hint: 'CONFIRME SUA SENHA',
+                    controller: _confirmPasswordController,
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 32),
+                  SizedBox(
+                    width: double
+                        .infinity, // Faz o botão ocupar toda a largura disponível
+                    child: ElevatedButton(
+                      onPressed: _register,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF303131),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15.0),
+                      ),
+                      child: const Text(
+                        'CADASTRAR',
+                        style: TextStyle(
+                          color: Color(0xFFECC14A),
+                          fontSize: 18,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -206,25 +185,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _buildRoundedTextField({
-    required String label,
     required String hint,
     required TextEditingController controller,
-    TextInputType inputType = TextInputType.text,
+    TextInputType textInputType = TextInputType.text,
     bool obscureText = false,
-    String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
   }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: inputType,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(30.0),
+    return SizedBox(
+      width: double.infinity, // Garante que os campos tenham largura total
+      child: TextFormField(
+        controller: controller,
+        keyboardType: textInputType,
+        obscureText: obscureText,
+        inputFormatters: inputFormatters,
+        textAlign: TextAlign.center, // Centraliza o texto dentro do campo
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.transparent,
+          hintText: hint,
+          hintStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF303131),
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25.0),
+            borderSide: const BorderSide(
+              color: Color(0xFF303131),
+              width: 3.0,
+            ),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25.0),
+            borderSide: const BorderSide(
+              color: Color(0xFF303131),
+              width: 3.0,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25.0),
+            borderSide: const BorderSide(
+              color: Color(0xFF303131),
+              width: 4.0,
+            ),
+          ),
         ),
       ),
-      validator: validator,
+    );
+  }
+}
+
+// TextInputFormatter para converter texto para maiúsculas
+class UpperCaseTextInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      selection: TextSelection.collapsed(offset: newValue.text.length),
     );
   }
 }

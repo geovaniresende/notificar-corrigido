@@ -19,7 +19,11 @@ dependencies:
   firebase_messaging: ^15.2.4
   flutter_local_notifications: ^19.0.0
   permission_handler: ^11.3.0
+  googleapis_auth: ^1.1.0
+  googleapis: ^14.0.0
+  cloud_functions: ^5.3.4
 
+  
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -48,6 +52,7 @@ flutter:
     - assets/images/notification_icon.png
     - assets/images/relogio.png
     - assets/images/caricon3.png
+    - assets/notificar-backend-16117-firebase-adminsdk-fbsvc-4cda64d184.json
 
 # Configuração do flutter_launcher_icons
 flutter_launcher_icons:

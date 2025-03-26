@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_notification_service.dart';
@@ -34,6 +33,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     String senderId = FirebaseAuth.instance.currentUser?.uid ?? "desconhecido";
 
     try {
+      // Criando notificação na aba "Realizadas"
       await _firestore
           .collection('sentRequests')
           .doc(senderId)
@@ -46,6 +46,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         'sentBy': senderId,
       });
 
+      // Criando notificação na aba "Recebidas"
       await _firestore
           .collection('receivedRequests')
           .doc(plate)
@@ -58,6 +59,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         'sentBy': senderId,
       });
 
+      // Buscar token do usuário pelo UID e não pela placa
       var querySnapshot = await _firestore
           .collection('users')
           .where('plate', isEqualTo: plate)
@@ -65,15 +67,20 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        String? token = querySnapshot.docs.first.data()['fcmToken'];
+        String userData = querySnapshot.docs.first.data().toString();
+        print("Dados do usuário encontrado: $userData");
+
+        // Verificar o campo correto (fcm_token)
+        String? token = querySnapshot.docs.first.data()['fcm_token'];
         if (token != null) {
           await _notificationService.sendPushNotification(
               token, "Alerta de Veículo", message);
+          print("✅ Notificação enviada com sucesso para o token FCM: $token");
         } else {
-          print("Usuário encontrado, mas sem token FCM.");
+          print("❌ Usuário encontrado, mas sem token FCM.");
         }
       } else {
-        print("Nenhum usuário encontrado com essa placa.");
+        print("❌ Nenhum usuário encontrado com essa placa.");
       }
     } catch (e) {
       print("Erro ao enviar notificação: $e");
@@ -98,11 +105,10 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     return Scaffold(
       appBar: AppBar(
         centerTitle: true,
-        title: const Text('Notificação',
-            style: TextStyle(color: Color(0xFFD4A017))),
-        backgroundColor: const Color(0xFF303131),
+        title: const Text('Notificação', style: TextStyle(color: Colors.amber)),
+        backgroundColor: Colors.black,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFFD4A017)),
+          icon: const Icon(Icons.arrow_back, color: Colors.amber),
           onPressed: () {
             Navigator.of(context).pop();
           },
@@ -113,53 +119,13 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Campo de texto da placa com hint text centralizado em negrito
             TextField(
               controller: _plateController,
               decoration: InputDecoration(
-                hintText: 'PLACA', // Texto "PLACA"
-                hintStyle: TextStyle(
-                  fontWeight: FontWeight.bold, // Negrito
-                  fontSize: 18,
-                  color: Color(0xFF303131),
-                ),
+                labelText: 'Placa',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF303131),
-                    width: 3.0,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF303131),
-                    width: 3.0,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF303131),
-                    width: 4.0,
-                  ),
-                ),
-                filled: true,
-                fillColor: Colors.transparent,
-                contentPadding: const EdgeInsets.symmetric(
-                    vertical: 10.0, horizontal: 12.0),
+                    borderRadius: BorderRadius.circular(10.0)),
               ),
-              style: const TextStyle(
-                color: Color(0xFF303131),
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-              inputFormatters: [
-                UpperCaseTextFormatter(), // Formatação para maiúsculas
-              ],
-              textCapitalization: TextCapitalization
-                  .characters, // Garante que o teclado mostre as maiúsculas
-              textAlign: TextAlign.center, // Centraliza o texto dentro da caixa
             ),
             const SizedBox(height: 20),
             _buildRadioOption('Carro preso'),
@@ -168,20 +134,15 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
             _buildRadioOption('Estacionamento irregular'),
             _buildRadioOption('Outro'),
             const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _onNotifyPressed(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF303131),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0),
-                  ),
-                ),
-                child: const Text('NOTIFICAR',
-                    style: TextStyle(color: Color(0xFFD4A017))),
+            ElevatedButton(
+              onPressed: () => _onNotifyPressed(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
               ),
+              child: const Text('Notificar',
+                  style: TextStyle(color: Colors.amber)),
             ),
           ],
         ),
@@ -199,17 +160,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         });
       },
       title: Text(value),
-    );
-  }
-}
-
-class UpperCaseTextFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
-    return TextEditingValue(
-      text: newValue.text.toUpperCase(), // Converter para maiúsculas
-      selection: newValue.selection,
     );
   }
 }

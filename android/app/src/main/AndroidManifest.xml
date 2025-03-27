@@ -1,7 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.notificar">
 
-    <!-- Permissões essenciais -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
@@ -30,7 +29,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Serviço do Firebase para notificações -->
         <service
             android:name=".MyFirebaseMessagingService"
             android:exported="false">
@@ -42,4 +40,3 @@
     </application>
 
 </manifest>
-

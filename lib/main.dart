@@ -1,13 +1,10 @@
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:http/http.dart' as http;
-
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
@@ -23,7 +20,91 @@ import 'screens/recuperacao_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Solicitar permissão para notificações (Android 13+)
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+  NotificationSettings settings = await messaging.requestPermission();
+  print('Permissão concedida: ${settings.authorizationStatus}');
+
+  // Obter o token FCM
+  String? token = await messaging.getToken();
+  print("Token FCM: $token");
+
+  // Verificar se o token já está armazenado no Firestore
+  if (token != null) {
+    await _checkAndSaveToken(token);
+  }
+
+  // Configurar notificações locais
+  var initializationSettings = InitializationSettings(
+    android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+  );
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+  // Configurar notificações em primeiro plano
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print(
+        'Mensagem recebida em primeiro plano: ${message.notification?.title}');
+    print('Mensagem recebida em primeiro plano: ${message.notification?.body}');
+    _showNotification(flutterLocalNotificationsPlugin, message);
+  });
+
+  // Configurar notificações em segundo plano
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
   runApp(MyApp(initialRoute: '/login'));
+}
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  print('Mensagem recebida em segundo plano: ${message.notification?.title}');
+  print('Mensagem recebida em segundo plano: ${message.notification?.body}');
+}
+
+void _showNotification(
+    FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin,
+    RemoteMessage message) async {
+  const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+    'channel_id',
+    'channel_name',
+    importance: Importance.high,
+    priority: Priority.high,
+  );
+
+  const NotificationDetails platformDetails = NotificationDetails(
+    android: androidDetails,
+  );
+
+  await flutterLocalNotificationsPlugin.show(
+    0,
+    message.notification?.title ?? '',
+    message.notification?.body ?? '',
+    platformDetails,
+  );
+}
+
+// Função para verificar e salvar o token FCM
+Future<void> _checkAndSaveToken(String token) async {
+  FirebaseFirestore firestore = FirebaseFirestore.instance;
+  String userId =
+      'user_unique_id'; // Substitua isso pelo identificador do usuário ou use autenticação Firebase
+
+  DocumentReference tokenRef = firestore.collection('users').doc(userId);
+
+  // Verificar se o token já existe
+  DocumentSnapshot doc = await tokenRef.get();
+  if (doc.exists) {
+    // Token já existe, não faz nada
+    print('Token já existe no Firestore, não será substituído.');
+  } else {
+    // Se não existir, salvar o novo token
+    await tokenRef.set({
+      'fcm_token': token,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    print('Token FCM salvo com sucesso no Firestore.');
+  }
 }
 
 class MyApp extends StatelessWidget {
@@ -52,113 +133,6 @@ class MyApp extends StatelessWidget {
         '/terms_and_privacy_screen': (context) => TermsAndPrivacyScreen(),
         '/recuperacao_screen': (context) => const RecuperacaoScreen(),
       },
-    );
-  }
-}
-
-class PlateSearchScreen extends StatefulWidget {
-  @override
-  _PlateSearchScreenState createState() => _PlateSearchScreenState();
-}
-
-class _PlateSearchScreenState extends State<PlateSearchScreen> {
-  TextEditingController plateController = TextEditingController();
-  String result = "";
-
-  Future<void> searchPlate() async {
-    String plate = plateController.text.trim();
-    if (plate.isEmpty) {
-      setState(() {
-        result = "❌ Digite a placa para buscar.";
-      });
-      return;
-    }
-
-    try {
-      FirebaseFirestore firestore = FirebaseFirestore.instance;
-      QuerySnapshot querySnapshot = await firestore
-          .collection('users')
-          .where('plate', isEqualTo: plate)
-          .get();
-
-      if (querySnapshot.docs.isEmpty) {
-        setState(() {
-          result = "❌ Nenhum usuário encontrado para a placa $plate.";
-        });
-      } else {
-        var userDoc = querySnapshot.docs.first;
-        String fcmToken = userDoc['fcm_token'] ?? '';
-
-        if (fcmToken.isEmpty) {
-          setState(() {
-            result = "❌ Token FCM não encontrado para o usuário.";
-          });
-        } else {
-          setState(() {
-            result = "✅ Placa: $plate\nFCM Token: $fcmToken";
-          });
-          sendNotification(fcmToken);
-        }
-      }
-    } catch (e) {
-      setState(() {
-        result = "❌ Erro ao buscar a placa: $e";
-      });
-    }
-  }
-
-  Future<void> sendNotification(String fcmToken) async {
-    try {
-      final HttpsCallable callable =
-          FirebaseFunctions.instance.httpsCallable('sendNotification');
-
-      final result = await callable.call(<String, dynamic>{
-        'fcmToken': fcmToken,
-        'title': 'Notificação de Placa',
-        'body': 'A sua placa foi identificada!',
-      });
-
-      if (result.data['success']) {
-        print("✅ Notificação enviada com sucesso.");
-      } else {
-        print("❌ Erro ao enviar notificação: ${result.data['error']}");
-      }
-    } catch (e) {
-      print("❌ Erro ao chamar a função de notificação: $e");
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Buscar Placa"),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(
-              controller: plateController,
-              decoration: InputDecoration(
-                labelText: 'Digite a placa',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: searchPlate,
-              child: Text('Buscar'),
-            ),
-            SizedBox(height: 16),
-            Text(
-              result,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

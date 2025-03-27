@@ -11,3 +11,5 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+# Ignorar credenciais do Firebase
+assets/notificar-backend-16117-firebase-adminsdk-fbsvc-4cda64d184.json

@@ -234,14 +234,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-// TextInputFormatter para converter texto para maiúsculas
+// TextInputFormatter para converter texto para maiúsculas e remover espaços
 class UpperCaseTextInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
       TextEditingValue oldValue, TextEditingValue newValue) {
+    // Remove espaços e converte para maiúsculas
+    String newText = newValue.text.replaceAll(' ', '').toUpperCase();
+
     return newValue.copyWith(
-      text: newValue.text.toUpperCase(),
-      selection: TextSelection.collapsed(offset: newValue.text.length),
+      text: newText,
+      selection: TextSelection.collapsed(offset: newText.length),
     );
   }
 }

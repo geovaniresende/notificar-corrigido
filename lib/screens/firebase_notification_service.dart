@@ -25,6 +25,7 @@ class FirebaseNotificationService {
       );
 
       _accessToken = (await client.credentials).accessToken.data;
+      print("🔑 Token de acesso gerado com sucesso!");
     } catch (e) {
       print("❌ Erro ao obter o token de acesso: $e");
       throw Exception("Falha ao autenticar no OAuth 2.0");
@@ -51,12 +52,26 @@ class FirebaseNotificationService {
               'title': title,
               'body': message,
             },
-          }
+            'android': {
+              'priority': 'high',
+              'notification': {
+                'sound': 'default',
+                'channel_id': 'high_importance_channel',
+              }
+            },
+            'apns': {
+              'payload': {
+                'aps': {
+                  'sound': 'default',
+                },
+              },
+            },
+          },
         }),
       );
 
       if (response.statusCode == 200) {
-        print("✅ Notificação enviada com sucesso!");
+        print("✅ Notificação enviada com sucesso para o token: $fcmToken");
       } else {
         print("❌ Falha ao enviar notificação: ${response.body}");
       }

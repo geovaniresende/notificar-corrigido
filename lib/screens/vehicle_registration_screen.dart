@@ -33,7 +33,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
     String senderId = FirebaseAuth.instance.currentUser?.uid ?? "desconhecido";
 
     try {
-      // Criando notificação na aba "Realizadas"
       await _firestore
           .collection('sentRequests')
           .doc(senderId)
@@ -46,7 +45,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         'sentBy': senderId,
       });
 
-      // Criando notificação na aba "Recebidas"
       await _firestore
           .collection('receivedRequests')
           .doc(plate)
@@ -59,7 +57,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         'sentBy': senderId,
       });
 
-      // Buscar token do usuário pelo UID e não pela placa
       var querySnapshot = await _firestore
           .collection('users')
           .where('plate', isEqualTo: plate)
@@ -67,10 +64,6 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           .get();
 
       if (querySnapshot.docs.isNotEmpty) {
-        String userData = querySnapshot.docs.first.data().toString();
-        print("Dados do usuário encontrado: $userData");
-
-        // Verificar o campo correto (fcm_token)
         String? token = querySnapshot.docs.first.data()['fcm_token'];
         if (token != null) {
           await _notificationService.sendPushNotification(
@@ -106,7 +99,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
       appBar: AppBar(
         centerTitle: true,
         title: const Text('Notificação', style: TextStyle(color: Colors.amber)),
-        backgroundColor: Colors.black,
+        backgroundColor: Color(0xFF303131),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.amber),
           onPressed: () {
@@ -121,11 +114,52 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           children: [
             TextField(
               controller: _plateController,
-              decoration: InputDecoration(
-                labelText: 'Placa',
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0)),
+              textAlign: TextAlign.center, // Centraliza horizontalmente
+              style: const TextStyle(
+                fontWeight: FontWeight.bold, // Negrito
+                fontSize: 18,
               ),
+              textCapitalization:
+                  TextCapitalization.characters, // Maiúsculas automáticas
+              decoration: InputDecoration(
+                hintText: 'PLACA',
+                hintStyle: const TextStyle(
+                  fontWeight: FontWeight.bold, // Negrito no placeholder
+                  fontSize: 18,
+                  color: Color(0xFF303131),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF303131),
+                    width: 3.0,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF303131),
+                    width: 3.0,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF303131),
+                    width: 4.0,
+                  ),
+                ),
+                filled: true,
+                fillColor: Colors.transparent,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
+              ),
+              onChanged: (value) {
+                // Remove espaços e mantém apenas caracteres maiúsculos
+                _plateController.value = _plateController.value.copyWith(
+                  text: value.toUpperCase().replaceAll(' ', ''),
+                  selection: TextSelection.collapsed(offset: value.length),
+                );
+              },
             ),
             const SizedBox(height: 20),
             _buildRadioOption('Carro preso'),
@@ -134,15 +168,21 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
             _buildRadioOption('Estacionamento irregular'),
             _buildRadioOption('Outro'),
             const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _onNotifyPressed(context),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+            SizedBox(
+              width: double
+                  .infinity, // Faz o botão ter a largura da caixa de texto
+              child: ElevatedButton(
+                onPressed: () => _onNotifyPressed(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF303131),
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20.0),
+                  ),
+                ),
+                child: const Text('Notificar',
+                    style: TextStyle(color: Colors.amber)),
               ),
-              child: const Text('Notificar',
-                  style: TextStyle(color: Colors.amber)),
             ),
           ],
         ),

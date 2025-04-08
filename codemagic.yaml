@@ -1,18 +1,36 @@
 workflows:
-  build-ios:
-    name: Build iOS IPA
+  build-android-ios:
+    name: Build Android and iOS
     environment:
       flutter: stable
       xcode: latest
+      cocoapods: default
     scripts:
-      - name: Instalar dependências
+      - name: Set iOS minimum version to 13.0
+        script: |
+          if [ -f ios/Podfile ]; then
+            sed -i '' 's/platform :ios, .*/platform :ios, '\''13.0'\''/' ios/Podfile
+          else
+            echo "platform :ios, '13.0'" > ios/Podfile
+          fi
+
+      - name: Get dependencies
         script: |
           flutter pub get
-      - name: Copiar credenciais do Firebase
+
+      - name: Build iOS
         script: |
-          cp assets/notificar-backend-16117-firebase-adminsdk-fbsvc-4cda64d184.json $CM_BUILD_DIR/firebase-adminsdk.json
-      - name: Build IPA
+          flutter build ios --release
+
+      - name: Build Android
         script: |
-          flutter build ios --release --no-codesign
+          flutter build apk --release
+
     artifacts:
       - build/ios/iphoneos/*.ipa
+      - build/app/outputs/flutter-apk/app-release.apk
+
+    publishing:
+      email:
+        recipients:
+          - seu-email@dominio.com

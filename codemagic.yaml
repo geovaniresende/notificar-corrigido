@@ -1,0 +1,18 @@
+workflows:
+  build-ios:
+    name: Build iOS IPA
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Instalar dependências
+        script: |
+          flutter pub get
+      - name: Copiar credenciais do Firebase
+        script: |
+          cp assets/notificar-backend-16117-firebase-adminsdk-fbsvc-4cda64d184.json $CM_BUILD_DIR/firebase-adminsdk.json
+      - name: Build IPA
+        script: |
+          flutter build ios --release --no-codesign
+    artifacts:
+      - build/ios/iphoneos/*.ipa

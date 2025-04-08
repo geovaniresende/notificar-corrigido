@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -26,13 +27,14 @@ void main() async {
   NotificationSettings settings = await messaging.requestPermission();
   print('Permissão concedida: ${settings.authorizationStatus}');
 
-  // Obter o token FCM
+  // Obter o token FCM e salvar se autenticado
   String? token = await messaging.getToken();
   print("Token FCM: $token");
 
-  // Verificar se o token já está armazenado no Firestore
-  if (token != null) {
-    await _checkAndSaveToken(token);
+  // Salvar token FCM apenas se o usuário estiver autenticado
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null && token != null) {
+    await _checkAndSaveToken(user.uid, token);
   }
 
   // Configurar notificações locais
@@ -54,7 +56,9 @@ void main() async {
   // Configurar notificações em segundo plano
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  runApp(MyApp(initialRoute: '/login'));
+  runApp(const MyApp(
+    initialRoute: '',
+  ));
 }
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -84,21 +88,15 @@ void _showNotification(
   );
 }
 
-// Função para verificar e salvar o token FCM
-Future<void> _checkAndSaveToken(String token) async {
+// Função para verificar e salvar o token FCM no Firestore
+Future<void> _checkAndSaveToken(String userId, String token) async {
   FirebaseFirestore firestore = FirebaseFirestore.instance;
-  String userId =
-      'user_unique_id'; // Substitua isso pelo identificador do usuário ou use autenticação Firebase
-
   DocumentReference tokenRef = firestore.collection('users').doc(userId);
 
-  // Verificar se o token já existe
   DocumentSnapshot doc = await tokenRef.get();
   if (doc.exists) {
-    // Token já existe, não faz nada
     print('Token já existe no Firestore, não será substituído.');
   } else {
-    // Se não existir, salvar o novo token
     await tokenRef.set({
       'fcm_token': token,
       'createdAt': FieldValue.serverTimestamp(),
@@ -107,9 +105,31 @@ Future<void> _checkAndSaveToken(String token) async {
   }
 }
 
+// 🌟 AuthWrapper gerencia a tela inicial baseada no login
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasData) {
+          return const NotificationScreen(); // Usuário autenticado
+        }
+        return LoginScreen(); // Usuário não autenticado
+      },
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
-  final String initialRoute;
-  const MyApp({Key? key, required this.initialRoute}) : super(key: key);
+  const MyApp({Key? key, required String initialRoute}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +140,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         scaffoldBackgroundColor: const Color(0xFFF3C343),
       ),
-      initialRoute: initialRoute,
+      home: const AuthWrapper(), // 🔥 Definição automática da tela inicial
       routes: {
         '/login': (context) => LoginScreen(),
         '/register': (context) => const RegisterScreen(),
@@ -129,7 +149,7 @@ class MyApp extends StatelessWidget {
         '/sobre_screen': (context) => const SobreScreen(),
         '/quadros_screen': (context) => QuadrosScreen(),
         '/edit_profile': (context) => const EditProfileScreen(),
-        '/mycars_screen': (context) => const MyCarsScreen(),
+        '/mycars_screen': (context) => MyCarsScreen(),
         '/terms_and_privacy_screen': (context) => TermsAndPrivacyScreen(),
         '/recuperacao_screen': (context) => const RecuperacaoScreen(),
       },

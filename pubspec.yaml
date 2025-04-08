@@ -22,6 +22,9 @@ dependencies:
   googleapis_auth: ^1.1.0
   googleapis: ^14.0.0
   cloud_functions: ^5.3.4
+  flutter_svg: ^2.0.17
+  fluttertoast: ^8.2.12
+  firebase_storage: ^12.4.5
 
   
 dev_dependencies:

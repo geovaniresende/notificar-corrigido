@@ -20,6 +20,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _carNameController =
+      TextEditingController(); // Adicionando o controller para o nome do carro
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -30,6 +32,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final String name = _nameController.text.trim();
       final String phone = _phoneController.text.trim();
       final String plate = _plateController.text.trim().toUpperCase();
+      final String carName =
+          _carNameController.text.trim(); // Captura o nome do carro
 
       try {
         UserCredential userCredential =
@@ -46,6 +50,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           'email': email,
           'phone': phone,
           'plate': plate,
+          'carName': carName, // Salvando o nome do carro
           'createdAt': Timestamp.now(),
         });
 
@@ -140,6 +145,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     hint: 'PLACA',
                     controller: _plateController,
                     inputFormatters: [UpperCaseTextInputFormatter()],
+                  ),
+                  const SizedBox(height: 16),
+                  _buildRoundedTextField(
+                    hint: 'NOME DO CARRO', // Novo campo adicionado
+                    controller: _carNameController, // Novo controller
+                    textInputType: TextInputType.text,
                   ),
                   const SizedBox(height: 16),
                   _buildRoundedTextField(

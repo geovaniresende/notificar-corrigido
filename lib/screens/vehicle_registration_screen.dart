@@ -57,20 +57,35 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
         'sentBy': senderId,
       });
 
-      var querySnapshot = await _firestore
-          .collection('users')
-          .where('plate', isEqualTo: plate)
-          .limit(1)
-          .get();
+      List<String> tokens = [];
+      var usersSnapshot = await _firestore.collection('users').get();
 
-      if (querySnapshot.docs.isNotEmpty) {
-        String? token = querySnapshot.docs.first.data()['fcm_token'];
-        if (token != null) {
+      for (var userDoc in usersSnapshot.docs) {
+        var userData = userDoc.data();
+        var platesField = userData['plates'];
+
+        if (userData['plate'] == plate) {
+          if (userData['fcm_token'] != null) {
+            tokens.add(userData['fcm_token']);
+          }
+        }
+
+        if (platesField is List) {
+          for (var plateObj in platesField) {
+            if (plateObj is Map<String, dynamic> &&
+                plateObj['plate'] == plate) {
+              if (userData['fcm_token'] != null) {
+                tokens.add(userData['fcm_token']);
+              }
+            }
+          }
+        }
+      }
+
+      if (tokens.isNotEmpty) {
+        for (var token in tokens) {
           await _notificationService.sendPushNotification(
               token, "Alerta de Veículo", message);
-          print("✅ Notificação enviada com sucesso para o token FCM: $token");
-        } else {
-          print("❌ Usuário encontrado, mas sem token FCM.");
         }
       } else {
         print("❌ Nenhum usuário encontrado com essa placa.");
@@ -114,47 +129,32 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
           children: [
             TextField(
               controller: _plateController,
-              textAlign: TextAlign.center, // Centraliza horizontalmente
-              style: const TextStyle(
-                fontWeight: FontWeight.bold, // Negrito
-                fontSize: 18,
-              ),
-              textCapitalization:
-                  TextCapitalization.characters, // Maiúsculas automáticas
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(
                 hintText: 'PLACA',
                 hintStyle: const TextStyle(
-                  fontWeight: FontWeight.bold, // Negrito no placeholder
-                  fontSize: 18,
-                  color: Color(0xFF303131),
-                ),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Color(0xFF303131)),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF303131),
-                    width: 3.0,
-                  ),
-                ),
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF303131), width: 3.0)),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF303131),
-                    width: 3.0,
-                  ),
-                ),
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF303131), width: 3.0)),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(20.0),
-                  borderSide: const BorderSide(
-                    color: Color(0xFF303131),
-                    width: 4.0,
-                  ),
-                ),
+                    borderRadius: BorderRadius.circular(20.0),
+                    borderSide:
+                        const BorderSide(color: Color(0xFF303131), width: 4.0)),
                 filled: true,
                 fillColor: Colors.transparent,
                 contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
               ),
               onChanged: (value) {
-                // Remove espaços e mantém apenas caracteres maiúsculos
                 _plateController.value = _plateController.value.copyWith(
                   text: value.toUpperCase().replaceAll(' ', ''),
                   selection: TextSelection.collapsed(offset: value.length),
@@ -169,16 +169,14 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
             _buildRadioOption('Outro'),
             const SizedBox(height: 20),
             SizedBox(
-              width: double
-                  .infinity, // Faz o botão ter a largura da caixa de texto
+              width: double.infinity,
               child: ElevatedButton(
                 onPressed: () => _onNotifyPressed(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF303131),
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0),
-                  ),
+                      borderRadius: BorderRadius.circular(20.0)),
                 ),
                 child: const Text('Notificar',
                     style: TextStyle(color: Colors.amber)),

@@ -5,13 +5,12 @@ workflows:
     environment:
       vars:
         APP_ID: "com.example.notificar"
-        PRODUCT_BUNDLE_IDENTIFIER: "com.example.notificar"  # Adicionando a variável aqui
       flutter: stable
       xcode: latest
       cocoapods: default
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: $(PRODUCT_BUNDLE_IDENTIFIER)  # Agora estará acessível
+        bundle_identifier: "com.example.notificar"  # Valor literal aqui
     scripts:
       - name: Install dependencies
         script: |

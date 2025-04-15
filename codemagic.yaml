@@ -1,0 +1,15 @@
+workflows:
+  ios:
+    name: iOS workflow
+    max_build_duration: 60
+    platform: ios
+    xcode: 12.5.0
+    testing:
+      enabled: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          flutter pub get
+      - name: Build app
+        script: |
+          flutter build ios --release

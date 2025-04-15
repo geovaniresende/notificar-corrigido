@@ -20,7 +20,7 @@ dependencies:
   flutter_local_notifications: ^19.0.0
   permission_handler: ^11.3.0
   googleapis_auth: ^1.1.0
-  googleapis: ^14.0.0
+  googleapis: 13.2.0
   cloud_functions: ^5.3.4
   flutter_svg: ^2.0.17
   fluttertoast: ^8.2.12

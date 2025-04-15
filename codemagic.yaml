@@ -11,7 +11,7 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: $(PRODUCT_BUNDLE_IDENTIFIER)
-        apple_team_id: WT5TSJ49FM  # Inserido aqui, ao invés de "automatic_code_signing"
+        automatic_code_signing: true
     scripts:
       - name: Install dependencies
         script: |

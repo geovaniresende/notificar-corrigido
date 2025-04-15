@@ -4,15 +4,15 @@ workflows:
     max_build_duration: 60
     environment:
       vars:
-        APP_ID: "com.example.notificar" # Substitua pelo seu Bundle ID real
+        APP_ID: "com.example.notificar" 
       flutter: stable
       xcode: latest
       cocoapods: default
       ios_signing:
-        distribution_type: app_store # ou ad_hoc, development, enterprise
-        bundle_identifier: $APP_ID
+        distribution_type: app_store 
+        bundle_identifier: $(PRODUCT_BUNDLE_IDENTIFIER)
         automatic_code_signing:
-          apple_team_id: YOUR_TEAM_ID # substitua pelo ID do seu time Apple
+          apple_team_id: WT5TSJ49FM
     scripts:
       - name: Install dependencies
         script: |

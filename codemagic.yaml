@@ -2,6 +2,17 @@ workflows:
   ios:
     name: iOS workflow
     max_build_duration: 60
+    environment:
+      vars:
+        APP_ID: "com.example.notificar" # Substitua pelo seu Bundle ID real
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store # ou ad_hoc, development, enterprise
+        bundle_identifier: $APP_ID
+        automatic_code_signing:
+          apple_team_id: YOUR_TEAM_ID # substitua pelo ID do seu time Apple
     scripts:
       - name: Install dependencies
         script: |
@@ -12,3 +23,5 @@ workflows:
       - name: Run tests
         script: |
           flutter test
+    artifacts:
+      - build/ios/ipa/*.ipa

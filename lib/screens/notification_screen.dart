@@ -128,7 +128,7 @@ class NotificationScreen extends StatelessWidget {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const MyCarsScreen()),
+                  MaterialPageRoute(builder: (context) => MyCarsScreen()),
                 );
               },
             ),

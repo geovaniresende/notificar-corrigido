@@ -1,338 +1,287 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'notification_screen.dart';
 
 class MyCarsScreen extends StatefulWidget {
-  const MyCarsScreen({Key? key}) : super(key: key);
-
   @override
   _MyCarsScreenState createState() => _MyCarsScreenState();
 }
 
 class _MyCarsScreenState extends State<MyCarsScreen> {
-  String carName = "Carro 1"; // Nome fixo do carro
-  String plate = "";
-  bool isLoading = true;
-  String errorMessage = "";
-  List<Map<String, String>> carDetails = []; // Para armazenar os carros
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  TextEditingController carNameController = TextEditingController();
-  TextEditingController plateController = TextEditingController();
+  late Future<List<Map<String, dynamic>>> _carsFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadCarData();
+    _carsFuture = getUserCars();
   }
 
-  Future<void> _loadCarData() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() {
-          errorMessage = "Usuário não está logado.";
-          isLoading = false;
-        });
-        return;
+  Future<List<Map<String, dynamic>>> getUserCars() async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      DocumentSnapshot snapshot =
+          await _firestore.collection('users').doc(user.uid).get();
+      if (snapshot.exists) {
+        var data = snapshot.data() as Map<String, dynamic>;
+        List<Map<String, dynamic>> cars = [];
+
+        if (data.containsKey('carName') && data.containsKey('plate')) {
+          cars.add({
+            'carName': data['carName'],
+            'plate': data['plate'],
+          });
+        }
+
+        if (data.containsKey('plates') && data['plates'] is List) {
+          List platesList = data['plates'];
+          for (var car in platesList) {
+            cars.add({
+              'carName': car['carName'],
+              'plate': car['plate'],
+            });
+          }
+        }
+
+        return cars;
+      }
+    }
+    return [];
+  }
+
+  void addCar(String carName, String plate) async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      DocumentReference userRef = _firestore.collection('users').doc(user.uid);
+      String formattedPlate = plate.toUpperCase().replaceAll(' ', '');
+
+      DocumentSnapshot userSnapshot = await userRef.get();
+      List<dynamic> existingPlates = [];
+
+      if (userSnapshot.exists) {
+        var data = userSnapshot.data() as Map<String, dynamic>;
+        if (data.containsKey('plates') && data['plates'] is List) {
+          existingPlates = List.from(data['plates']);
+        }
       }
 
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      existingPlates.add({
+        'carName': carName,
+        'plate': formattedPlate,
+      });
 
-      if (userDoc.exists) {
-        setState(() {
-          plate = userDoc['plate'] ?? "Placa não cadastrada";
-          plateController.text = plate; // Carrega a placa no campo de edição
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          errorMessage = "Dados do carro não encontrados.";
-          isLoading = false;
-        });
-      }
-    } catch (e) {
+      await userRef.update({
+        'plates': existingPlates,
+      });
+
+      Fluttertoast.showToast(msg: "Carro adicionado com sucesso!");
       setState(() {
-        errorMessage = "Erro ao carregar: $e";
-        isLoading = false;
+        _carsFuture = getUserCars();
       });
     }
   }
 
-  Future<void> _addCarToFirebase() async {
-    try {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        setState(() {
-          errorMessage = "Usuário não está logado.";
-        });
-        return;
+  void editCar(int index, String newCarName, String newPlate) async {
+    User? user = _auth.currentUser;
+    if (user != null) {
+      DocumentReference userRef = _firestore.collection('users').doc(user.uid);
+      DocumentSnapshot userSnapshot = await userRef.get();
+
+      if (userSnapshot.exists) {
+        var data = userSnapshot.data() as Map<String, dynamic>;
+        List<dynamic> existingPlates = [];
+
+        if (data.containsKey('plates') && data['plates'] is List) {
+          existingPlates = List.from(data['plates']);
+        }
+
+        if (index == 0) {
+          await userRef.update({
+            'carName': newCarName,
+            'plate': newPlate.toUpperCase(),
+          });
+        } else {
+          existingPlates[index - 1] = {
+            'carName': newCarName,
+            'plate': newPlate.toUpperCase(),
+          };
+
+          await userRef.update({
+            'plates': existingPlates,
+          });
+        }
       }
-
-      // Adiciona ou atualiza os dados do carro no Firestore
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('cars')
-          .add({
-        'name': carNameController.text,
-        'plate': plateController.text,
-      });
-
-      // Atualiza a lista de carros após adicionar
-      setState(() {
-        carDetails.add({
-          'name': carNameController.text,
-          'plate': plateController.text,
-        });
-      });
-
-      carNameController.clear();
-      plateController.clear();
-    } catch (e) {
-      setState(() {
-        errorMessage = "Erro ao salvar: $e";
-      });
     }
-  }
 
-  void _showAddCarDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Adicionar Carro"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: carNameController,
-                decoration: const InputDecoration(labelText: "Nome do Carro"),
-              ),
-              TextField(
-                controller: plateController,
-                decoration: const InputDecoration(labelText: "Placa"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Fecha o diálogo
-              },
-              child: const Text("Cancelar"),
-            ),
-            TextButton(
-              onPressed: () {
-                _addCarToFirebase(); // Adiciona o carro no Firestore
-                Navigator.of(context).pop(); // Fecha o diálogo
-              },
-              child: const Text("OK"),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showEditCarDialog(String carId) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text("Editar Carro"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: carNameController,
-                decoration: const InputDecoration(labelText: "Nome do Carro"),
-              ),
-              TextField(
-                controller: plateController,
-                decoration: const InputDecoration(labelText: "Placa"),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Fecha o diálogo
-              },
-              child: const Text("Cancelar"),
-            ),
-            TextButton(
-              onPressed: () async {
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(FirebaseAuth.instance.currentUser?.uid)
-                    .collection('cars')
-                    .doc(carId)
-                    .update({
-                  'name': carNameController.text,
-                  'plate': plateController.text,
-                });
-                Navigator.of(context).pop(); // Fecha o diálogo
-              },
-              child: const Text("Salvar"),
-            ),
-          ],
-        );
-      },
-    );
+    Fluttertoast.showToast(msg: "Carro atualizado!");
+    setState(() {
+      _carsFuture = getUserCars();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Color(0xFF303131), // Cor preta alterada
-        title: const Text(
-          'Meus Carros',
-          style: TextStyle(color: Color(0xFFD4A017)), // Cor mostarda
+        backgroundColor: Color(0xFF303131),
+        title: Center(
+          child: Text(
+            'Meus Carros',
+            style: TextStyle(color: Color(0xFFD4A017)),
+          ),
         ),
-        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back,
-              color: Color(0xFFD4A017)), // Cor mostarda
+          icon: Icon(Icons.arrow_back, color: Color(0xFFD4A017)),
           onPressed: () {
-            Navigator.of(context).pop(); // Função de voltar
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => NotificationScreen()),
+            );
           },
         ),
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : errorMessage.isNotEmpty
-              ? Center(
-                  child:
-                      Text(errorMessage, style: TextStyle(color: Colors.red)))
-              : Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: Column(
-                    children: [
-                      // Caixa preta com o nome do carro fixo e a placa
-                      Card(
-                        color: Color(0xFF303131), // Cor preta alterada
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(15.0),
-                          leading: Image.asset(
-                            'assets/images/car_icon2.png',
-                            width: 40,
-                            height: 40,
-                          ),
-                          title: Text(
-                            carName,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFD4A017)), // Amarelo mostarda
-                          ),
-                          subtitle: Text(
-                            plate,
-                            style: const TextStyle(
-                                color: Color(0xFFD4A017)), // Amarelo mostarda
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.edit,
-                                color: Color(0xFFD4A017)), // Amarelo mostarda
-                            onPressed:
-                                _showAddCarDialog, // Abre o editor de placa
-                          ),
-                        ),
-                      ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.add, color: Color(0xFFD4A017)),
+            onPressed: () async {
+              String carName = '';
+              String plate = '';
 
-                      // Exibe os carros cadastrados
-                      Expanded(
-                        child: StreamBuilder<QuerySnapshot>(
-                          stream: FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(FirebaseAuth.instance.currentUser?.uid)
-                              .collection('cars')
-                              .snapshots(),
-                          builder: (context, snapshot) {
-                            if (snapshot.connectionState ==
-                                ConnectionState.waiting) {
-                              return const Center(
-                                  child: CircularProgressIndicator());
-                            }
-                            if (snapshot.hasError) {
-                              return Center(
-                                  child: Text("Erro ao carregar dados"));
-                            }
-
-                            if (snapshot.hasData && snapshot.data != null) {
-                              List<Map<String, String>> cars = [];
-                              snapshot.data!.docs.forEach((doc) {
-                                cars.add({
-                                  'name': doc['name'],
-                                  'plate': doc['plate'],
-                                  'id': doc.id, // Inclui o ID do carro
-                                });
-                              });
-
-                              return ListView.builder(
-                                itemCount: cars.length,
-                                itemBuilder: (context, index) {
-                                  return Card(
-                                    color:
-                                        Color(0xFF303131), // Cor preta alterada
-                                    child: ListTile(
-                                      contentPadding:
-                                          const EdgeInsets.all(15.0),
-                                      leading: Image.asset(
-                                        'assets/images/caricon3.png',
-                                        width: 40,
-                                        height: 40,
-                                      ),
-                                      title: Text(
-                                        cars[index]['name']!,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: Color(
-                                                0xFFD4A017)), // Amarelo mostarda
-                                      ),
-                                      subtitle: Text(
-                                        cars[index]['plate']!,
-                                        style: const TextStyle(
-                                            color: Color(
-                                                0xFFD4A017)), // Amarelo mostarda
-                                      ),
-                                      trailing: IconButton(
-                                        icon: const Icon(Icons.edit,
-                                            color: Color(
-                                                0xFFD4A017)), // Amarelo mostarda
-                                        onPressed: () {
-                                          // Abre o diálogo de edição para o carro específico
-                                          _showEditCarDialog(
-                                              cars[index]['id']!);
-                                        },
-                                      ),
-                                    ),
-                                  );
-                                },
-                              );
-                            } else {
-                              return Center(
-                                  child: Text("Nenhum carro encontrado"));
-                            }
+              await showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                    title: Text('Adicionar Carro'),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          decoration:
+                              InputDecoration(labelText: 'Nome do Carro'),
+                          onChanged: (value) {
+                            carName = value;
                           },
                         ),
+                        TextField(
+                          decoration: InputDecoration(labelText: 'Placa'),
+                          textCapitalization: TextCapitalization.characters,
+                          onChanged: (value) {
+                            plate = value.toUpperCase().replaceAll(' ', '');
+                          },
+                        ),
+                      ],
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          addCar(carName, plate);
+                          Navigator.pop(context);
+                        },
+                        child: Text('Adicionar'),
                       ),
                     ],
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: _carsFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(child: Text('Nenhum carro encontrado.'));
+          }
+
+          return ListView.builder(
+            itemCount: snapshot.data!.length,
+            itemBuilder: (context, index) {
+              var car = snapshot.data![index];
+              String carName = car['carName'];
+              String plate = car['plate'];
+
+              return Card(
+                color: Color(0xFF303131),
+                margin: EdgeInsets.symmetric(vertical: 10, horizontal: 20),
+                child: ListTile(
+                  leading: Image.asset(
+                    'assets/images/car_icon2.png',
+                    width: 50,
+                    height: 50,
+                  ),
+                  title: Text(
+                    carName,
+                    style: TextStyle(color: Color(0xFFD4A017)),
+                  ),
+                  subtitle: Text(
+                    plate,
+                    style: TextStyle(color: Color(0xFFD4A017)),
+                  ),
+                  trailing: IconButton(
+                    icon: Icon(Icons.edit, color: Color(0xFFD4A017)),
+                    onPressed: () {
+                      String newCarName = carName;
+                      String newPlate = plate;
+
+                      showDialog(
+                        context: context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: Text('Editar Carro'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                TextField(
+                                  decoration: InputDecoration(
+                                      labelText: 'Nome do Carro'),
+                                  controller:
+                                      TextEditingController(text: carName),
+                                  onChanged: (value) {
+                                    newCarName = value;
+                                  },
+                                ),
+                                TextField(
+                                  decoration:
+                                      InputDecoration(labelText: 'Placa'),
+                                  controller:
+                                      TextEditingController(text: plate),
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  onChanged: (value) {
+                                    newPlate =
+                                        value.toUpperCase().replaceAll(' ', '');
+                                  },
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  editCar(index, newCarName, newPlate);
+                                  Navigator.pop(context);
+                                },
+                                child: Text('Salvar'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
                   ),
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddCarDialog,
-        backgroundColor: Color(0xFF303131), // Cor preta alterada
-        child: Icon(
-          Icons.add,
-          color: Color(0xFFD4A017), // Cor do "+" em mostarda
-          size: 40,
-        ),
+              );
+            },
+          );
+        },
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation
-          .endFloat, // Coloca o botão no canto inferior direito
     );
   }
 }

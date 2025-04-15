@@ -1,15 +1,52 @@
-gradle-wrapper.jar
-/.gradle
-/captures/
-/gradlew
-/gradlew.bat
-/local.properties
-GeneratedPluginRegistrant.java
+# Flutter & Dart
+.dart_tool/
+.packages
+.pub/
+build/
+android/.gradle/
+android/app/google-services.json
+android/app/firebase_app_id_file.json
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+macos/Pods/
+macos/.symlinks/
+macos/Flutter/ephemeral/
+windows/flutter/ephemeral/
+linux/flutter/ephemeral/
+web/.dart_tool/
+web/compiled/
 
-# Remember to never publicly share your keystore.
-# See https://flutter.dev/to/reference-keystore
+# Gradle
+.gradle/
+gradle-wrapper.jar
+gradlew
+gradlew.bat
+*.iml
+
+# User-specific
+*.swp
+*.swo
+.idea/
+.vscode/
+*.log
+
+# Keystore & Credentials
+local.properties
 key.properties
 **/*.keystore
 **/*.jks
-# Ignorar credenciais do Firebase
+
+# Firebase Credentials
 assets/notificar-backend-16117-firebase-adminsdk-fbsvc-4cda64d184.json
+
+# Flutter Generated
+GeneratedPluginRegistrant.java
+
+# Debugging & Cache
+captures/
+.dart_server/
+.flutter-plugins
+.flutter-plugins-dependencies
+.flutter-versions
+pubspec.lock
